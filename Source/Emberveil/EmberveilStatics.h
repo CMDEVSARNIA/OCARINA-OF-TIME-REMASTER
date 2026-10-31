@@ -1,0 +1,22 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "EmberveilStatics.generated.h"
+
+class UMeshComponent;
+
+UCLASS()
+class EMBERVEIL_API UEmberveilStatics : public UBlueprintFunctionLibrary
+{
+	GENERATED_BODY()
+
+public:
+	/** Shows a short message on the player's HUD and writes it to the log. */
+	UFUNCTION(BlueprintCallable, Category = "Emberveil", meta = (WorldContext = "WorldContextObject"))
+	static void ShowMessage(const UObject* WorldContextObject, const FString& Message, float Duration = 3.f);
+
+	/** Tints a mesh that uses the engine's BasicShapeMaterial (vector parameter "Color"). */
+	UFUNCTION(BlueprintCallable, Category = "Emberveil")
+	static void TintMesh(UMeshComponent* Mesh, FLinearColor Color);
+};
