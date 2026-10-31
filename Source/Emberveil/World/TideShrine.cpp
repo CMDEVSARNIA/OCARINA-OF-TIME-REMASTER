@@ -59,8 +59,20 @@ ATideShrine::ATideShrine()
 void ATideShrine::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	UEmberveilStatics::TintMesh(Basin, FLinearColor(0.3f, 0.32f, 0.33f));
-	UEmberveilStatics::TintMesh(Pillar, FLinearColor(0.38f, 0.4f, 0.42f));
+
+	if (UStaticMesh* Art = UEmberveilStatics::LoadArtMesh(TEXT("SM_TideShrine")))
+	{
+		// One mesh replaces basin + pillar; its cradle holds the orb at 4.5 m.
+		Basin->SetStaticMesh(Art);
+		Basin->SetRelativeTransform(FTransform::Identity);
+		Pillar->SetVisibility(false);
+		Pillar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	else
+	{
+		UEmberveilStatics::TintMesh(Basin, FLinearColor(0.3f, 0.32f, 0.33f));
+		UEmberveilStatics::TintMesh(Pillar, FLinearColor(0.38f, 0.4f, 0.42f));
+	}
 	UEmberveilStatics::TintMesh(Orb, FLinearColor(0.3f, 0.75f, 0.9f));
 }
 

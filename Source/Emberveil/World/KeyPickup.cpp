@@ -34,7 +34,16 @@ AKeyPickup::AKeyPickup()
 void AKeyPickup::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	UEmberveilStatics::TintMesh(Mesh, FLinearColor(1.f, 0.75f, 0.1f));
+
+	if (UStaticMesh* Art = UEmberveilStatics::LoadArtMesh(TEXT("SM_Key")))
+	{
+		Mesh->SetStaticMesh(Art);
+		Mesh->SetRelativeTransform(FTransform(FRotator::ZeroRotator, FVector(0.f, 0.f, 10.f), FVector(1.5f)));
+	}
+	else
+	{
+		UEmberveilStatics::TintMesh(Mesh, FLinearColor(1.f, 0.75f, 0.1f));
+	}
 }
 
 void AKeyPickup::BeginPlay()

@@ -58,7 +58,18 @@ AEmberSentinel::AEmberSentinel()
 void AEmberSentinel::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	UEmberveilStatics::TintMesh(BodyMesh, SentinelBodyColor);
+
+	if (UStaticMesh* Art = UEmberveilStatics::LoadArtMesh(TEXT("SM_Sentinel")))
+	{
+		// Art pivot is the base; the capsule centre is 80 cm up. Eye socket lines up with EyeMesh.
+		bUsingArt = true;
+		BodyMesh->SetStaticMesh(Art);
+		BodyMesh->SetRelativeTransform(FTransform(FVector(0.f, 0.f, -80.f)));
+	}
+	else
+	{
+		UEmberveilStatics::TintMesh(BodyMesh, SentinelBodyColor);
+	}
 	SetEyeColor(SentinelEyeIdle);
 }
 
@@ -89,7 +100,14 @@ void AEmberSentinel::Tick(float DeltaSeconds)
 	if (bBodyFlashing && Now >= FlashUntil)
 	{
 		bBodyFlashing = false;
-		UEmberveilStatics::TintMesh(BodyMesh, SentinelBodyColor);
+		if (bUsingArt)
+		{
+			SetEyeColor(State == ESentinelState::Windup ? SentinelEyeWindup : SentinelEyeIdle);
+		}
+		else
+		{
+			UEmberveilStatics::TintMesh(BodyMesh, SentinelBodyColor);
+		}
 	}
 
 	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
@@ -189,7 +207,14 @@ void AEmberSentinel::HandleHealthChanged(float NewHealth, float Delta)
 
 	bBodyFlashing = true;
 	FlashUntil = Now + 0.1f;
-	UEmberveilStatics::TintMesh(BodyMesh, FLinearColor::White);
+	if (bUsingArt)
+	{
+		SetEyeColor(FLinearColor::White);
+	}
+	else
+	{
+		UEmberveilStatics::TintMesh(BodyMesh, FLinearColor::White);
+	}
 
 	// Small shove away from the player so hits feel weighty.
 	if (const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0))

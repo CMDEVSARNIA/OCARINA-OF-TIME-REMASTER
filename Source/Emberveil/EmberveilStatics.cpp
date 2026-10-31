@@ -6,7 +6,9 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Misc/PackageName.h"
 
 void UEmberveilStatics::ShowMessage(const UObject* WorldContextObject, const FString& Message, float Duration)
 {
@@ -42,6 +44,17 @@ void UEmberveilStatics::ShowTitle(const UObject* WorldContextObject, const FStri
 			HUD->ShowTitle(Title, Subtitle, Duration);
 		}
 	}
+}
+
+UStaticMesh* UEmberveilStatics::LoadArtMesh(const TCHAR* Name)
+{
+	const FString PackagePath = FString::Printf(TEXT("/Game/Emberveil/Meshes/%s"), Name);
+	if (!FPackageName::DoesPackageExist(PackagePath))
+	{
+		return nullptr;
+	}
+	const FString ObjectPath = FString::Printf(TEXT("%s.%s"), *PackagePath, Name);
+	return Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *ObjectPath, nullptr, LOAD_NoWarn | LOAD_Quiet));
 }
 
 void UEmberveilStatics::TintMesh(UMeshComponent* Mesh, FLinearColor Color)

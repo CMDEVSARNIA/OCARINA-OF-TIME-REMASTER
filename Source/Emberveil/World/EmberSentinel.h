@@ -93,4 +93,5 @@ private:
 	float NextAttackTime = 0.f;
 	float FlashUntil = 0.f;
 	bool bBodyFlashing = false;
+	bool bUsingArt = false;
 };

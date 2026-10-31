@@ -118,8 +118,10 @@ private:
 	void UpdateRegionTitle();
 
 	// Helpers.
-	UStaticMeshComponent* AddMesh(UStaticMesh* Mesh, const FVector& LocalLocation, const FRotator& LocalRotation, const FVector& Scale, const FLinearColor& Color, bool bCollision);
-	UInstancedStaticMeshComponent* AddInstancedMesh(UStaticMesh* Mesh, const FLinearColor& Color, bool bCollision);
+	UStaticMeshComponent* AddMesh(UStaticMesh* Mesh, const FVector& LocalLocation, const FRotator& LocalRotation, const FVector& Scale, const FLinearColor& Color, bool bCollision, bool bTint = true);
+	UInstancedStaticMeshComponent* AddInstancedMesh(UStaticMesh* Mesh, const FLinearColor& Color, bool bCollision, bool bTint = true);
+	void LoadArt();
+	UStaticMesh* Art(const TCHAR* Name) const;
 	UPointLightComponent* AddLight(const FVector& LocalLocation, const FLinearColor& Color, float Intensity, float Radius);
 	template <class T> T* SpawnAtLocal(const FVector& LocalLocation, const FRotator& LocalRotation = FRotator::ZeroRotator);
 
@@ -137,6 +139,10 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> BiomeMaterials;
+
+	/** Imported art meshes by asset name (empty entries = use greybox). */
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<UStaticMesh>> ArtMeshes;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AEnvironmentController> Environment;

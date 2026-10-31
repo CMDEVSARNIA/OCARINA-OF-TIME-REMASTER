@@ -113,9 +113,31 @@ AEmberveilCharacter::AEmberveilCharacter()
 void AEmberveilCharacter::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	UEmberveilStatics::TintMesh(BodyMesh, FLinearColor(0.35f, 0.22f, 0.15f));
-	UEmberveilStatics::TintMesh(HeadMesh, FLinearColor(0.8f, 0.65f, 0.5f));
-	UEmberveilStatics::TintMesh(BladeMesh, FLinearColor(0.75f, 0.78f, 0.82f));
+
+	if (UStaticMesh* KeeperArt = UEmberveilStatics::LoadArtMesh(TEXT("SM_LanternKeeper")))
+	{
+		// Art pivot is at the feet; the capsule centre is 96 cm above them.
+		BodyMesh->SetStaticMesh(KeeperArt);
+		BodyMesh->SetRelativeTransform(FTransform(FVector(0.f, 0.f, -96.f)));
+		HeadMesh->SetVisibility(false);
+		Lantern->SetRelativeLocation(FVector(8.f, -36.f, 2.f)); // matches the lantern on the model's left hip
+	}
+	else
+	{
+		UEmberveilStatics::TintMesh(BodyMesh, FLinearColor(0.35f, 0.22f, 0.15f));
+		UEmberveilStatics::TintMesh(HeadMesh, FLinearColor(0.8f, 0.65f, 0.5f));
+	}
+
+	if (UStaticMesh* BladeArt = UEmberveilStatics::LoadArtMesh(TEXT("SM_Blade")))
+	{
+		// Art pivot is the grip; offset it to the hand position in front of the body.
+		BladeMesh->SetStaticMesh(BladeArt);
+		BladeMesh->SetRelativeTransform(FTransform(FVector(30.f, 0.f, 0.f)));
+	}
+	else
+	{
+		UEmberveilStatics::TintMesh(BladeMesh, FLinearColor(0.75f, 0.78f, 0.82f));
+	}
 }
 
 void AEmberveilCharacter::BeginPlay()

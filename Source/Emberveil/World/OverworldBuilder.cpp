@@ -447,6 +447,7 @@ void AOverworldBuilder::Build()
 		Environment->SetWaterHalfExtent(GetHalfSize() * 1.3f);
 	}
 
+	LoadArt();
 	PrepareRoads();
 	BuildTerrain();
 	BuildHub(Rand);
@@ -604,14 +605,35 @@ void AOverworldBuilder::BuildHub(FRandomStream& Rand)
 		const float Angle = FMath::DegreesToRadians(i * 40.f + 10.f);
 		const FVector2D P = FVector2D(FMath::Cos(Angle), FMath::Sin(Angle)) * 1600.f;
 		const FRotator Rot(Rand.FRandRange(-5.f, 5.f), FMath::RadiansToDegrees(Angle), Rand.FRandRange(-5.f, 5.f));
-		AddMesh(CubeMesh, GroundLocal(P, 200.f), Rot, FVector(1.6f, 0.8f, 5.f), Stone, true);
+		if (UStaticMesh* StoneArt = Art(TEXT("SM_StandingStone")))
+		{
+			AddMesh(StoneArt, GroundLocal(P, -30.f), Rot, FVector(1.f), Stone, true, false);
+		}
+		else
+		{
+			AddMesh(CubeMesh, GroundLocal(P, 200.f), Rot, FVector(1.6f, 0.8f, 5.f), Stone, true);
+		}
 	}
 	const FVector Monolith = GroundLocal(FVector2D::ZeroVector);
-	AddMesh(CubeMesh, Monolith + FVector(0.f, 0.f, 350.f), FRotator(0.f, 20.f, 0.f), FVector(1.2f, 1.2f, 7.5f), FLinearColor(0.2f, 0.19f, 0.18f), true);
+	if (UStaticMesh* StoneArt = Art(TEXT("SM_StandingStone")))
+	{
+		AddMesh(StoneArt, Monolith - FVector(0.f, 0.f, 30.f), FRotator(0.f, 20.f, 0.f), FVector(1.6f, 0.9f, 1.5f), Stone, true, false);
+	}
+	else
+	{
+		AddMesh(CubeMesh, Monolith + FVector(0.f, 0.f, 350.f), FRotator(0.f, 20.f, 0.f), FVector(1.2f, 1.2f, 7.5f), FLinearColor(0.2f, 0.19f, 0.18f), true);
+	}
 	AddLight(Monolith + FVector(0.f, 0.f, 850.f), FLinearColor(1.f, 0.5f, 0.2f), 20000.f, 4000.f);
 
 	// Boulders scattered across the plain.
-	UInstancedStaticMeshComponent* Boulders = AddInstancedMesh(SphereMesh, Stone, true);
+	// Two boulder variants when the art kit is imported; unit spheres otherwise.
+	UStaticMesh* BoulderA = Art(TEXT("SM_Boulder_A"));
+	UStaticMesh* BoulderB = Art(TEXT("SM_Boulder_B"));
+	UInstancedStaticMeshComponent* BoulderSets[2] =
+	{
+		AddInstancedMesh(BoulderA ? BoulderA : SphereMesh.Get(), Stone, true, BoulderA == nullptr),
+		AddInstancedMesh(BoulderB ? BoulderB : (BoulderA ? BoulderA : SphereMesh.Get()), Stone, true, BoulderA == nullptr && BoulderB == nullptr),
+	};
 	const float H = GetHalfSize();
 	for (int32 i = 0; i < 70; ++i)
 	{
@@ -621,7 +643,7 @@ void AOverworldBuilder::BuildHub(FRandomStream& Rand)
 			continue;
 		}
 		const float S = Rand.FRandRange(1.5f, 5.f);
-		Boulders->AddInstance(FTransform(FRotator(Rand.FRandRange(0.f, 360.f), Rand.FRandRange(0.f, 360.f), 0.f),
+		BoulderSets[i % 2]->AddInstance(FTransform(FRotator(Rand.FRandRange(0.f, 360.f), Rand.FRandRange(0.f, 360.f), 0.f),
 			GroundLocal(P, S * 15.f), FVector(S, S * Rand.FRandRange(0.7f, 1.2f), S * 0.7f)));
 	}
 
@@ -635,10 +657,19 @@ void AOverworldBuilder::BuildVillage(FRandomStream& Rand)
 
 	// Lantern tower: the landmark visible from most of the island at night.
 	const FVector TowerBase = GroundLocal(Center + FVector2D(0.f, 1800.f));
-	AddMesh(CylinderMesh, TowerBase + FVector(0.f, 0.f, 1250.f), FRotator::ZeroRotator, FVector(3.f, 3.f, 25.f), FLinearColor(0.5f, 0.47f, 0.42f), true);
-	AddMesh(CubeMesh, TowerBase + FVector(0.f, 0.f, 2530.f), FRotator(0.f, 45.f, 0.f), FVector(4.f, 4.f, 0.6f), FLinearColor(0.2f, 0.16f, 0.13f), true);
-	AddMesh(SphereMesh, TowerBase + FVector(0.f, 0.f, 2700.f), FRotator::ZeroRotator, FVector(1.5f), FLinearColor(1.f, 0.7f, 0.3f), false);
-	AddLight(TowerBase + FVector(0.f, 0.f, 2700.f), FLinearColor(1.f, 0.65f, 0.3f), 80000.f, 9000.f);
+	if (UStaticMesh* TowerArt = Art(TEXT("SM_LanternTower")))
+	{
+		AddMesh(TowerArt, TowerBase - FVector(0.f, 0.f, 30.f), FRotator::ZeroRotator, FVector(1.f), FLinearColor::White, true, false);
+		AddLight(TowerBase + FVector(0.f, 0.f, 2350.f), FLinearColor(1.f, 0.65f, 0.3f), 80000.f, 9000.f);
+	}
+	else
+	{
+		AddMesh(CylinderMesh, TowerBase + FVector(0.f, 0.f, 1250.f), FRotator::ZeroRotator, FVector(3.f, 3.f, 25.f), FLinearColor(0.5f, 0.47f, 0.42f), true);
+		AddMesh(CubeMesh, TowerBase + FVector(0.f, 0.f, 2530.f), FRotator(0.f, 45.f, 0.f), FVector(4.f, 4.f, 0.6f), FLinearColor(0.2f, 0.16f, 0.13f), true);
+		AddMesh(SphereMesh, TowerBase + FVector(0.f, 0.f, 2700.f), FRotator::ZeroRotator, FVector(1.5f), FLinearColor(1.f, 0.7f, 0.3f), false);
+		AddLight(TowerBase + FVector(0.f, 0.f, 2700.f), FLinearColor(1.f, 0.65f, 0.3f), 80000.f, 9000.f);
+	}
+	UStaticMesh* HouseArt = Art(TEXT("SM_House"));
 
 	// Houses around the square, leaving the east side open for the road.
 	const FLinearColor Walls(0.62f, 0.56f, 0.46f);
@@ -652,11 +683,17 @@ void AOverworldBuilder::BuildVillage(FRandomStream& Rand)
 		const float Yaw = AngleDeg + 180.f; // face the square
 		const FRotator Facing(0.f, Yaw, 0.f);
 
-		AddMesh(CubeMesh, Base + FVector(0.f, 0.f, 145.f), Facing, FVector(6.f, 5.f, 3.5f), Walls, true);
-		AddMesh(CubeMesh, Base + FVector(0.f, 0.f, 320.f), FRotator(0.f, Yaw, 45.f), FVector(6.6f, 4.f, 4.f), Roofs, true);
-
 		const FVector Front = Facing.Vector();
-		AddMesh(CubeMesh, Base + Front * 305.f + FVector(0.f, 0.f, 100.f), Facing, FVector(0.1f, 1.2f, 2.f), FLinearColor(0.15f, 0.1f, 0.07f), false);
+		if (HouseArt)
+		{
+			AddMesh(HouseArt, Base - FVector(0.f, 0.f, 25.f), Facing, FVector(1.f), Walls, true, false);
+		}
+		else
+		{
+			AddMesh(CubeMesh, Base + FVector(0.f, 0.f, 145.f), Facing, FVector(6.f, 5.f, 3.5f), Walls, true);
+			AddMesh(CubeMesh, Base + FVector(0.f, 0.f, 320.f), FRotator(0.f, Yaw, 45.f), FVector(6.6f, 4.f, 4.f), Roofs, true);
+			AddMesh(CubeMesh, Base + Front * 305.f + FVector(0.f, 0.f, 100.f), Facing, FVector(0.1f, 1.2f, 2.f), FLinearColor(0.15f, 0.1f, 0.07f), false);
+		}
 		AddLight(Base + Front * 420.f + FVector(0.f, 0.f, 260.f), FLinearColor(1.f, 0.6f, 0.3f), 3000.f, 900.f);
 	}
 }
@@ -680,9 +717,18 @@ void AOverworldBuilder::BuildLagoon(FRandomStream& Rand)
 
 		const float Height = Rand.FRandRange(3000.f, 7000.f);
 		const FVector Base = GroundLocal(P);
-		AddMesh(CubeMesh, Base + FVector(0.f, 0.f, Height * 0.5f - 400.f),
-			FRotator(Rand.FRandRange(-10.f, 10.f), Rand.FRandRange(0.f, 360.f), Rand.FRandRange(-10.f, 10.f)),
-			FVector(Rand.FRandRange(3.f, 6.f), Rand.FRandRange(3.f, 6.f), Height / 100.f), FLinearColor(0.45f, 0.5f, 0.55f), true);
+		const FRotator Lean(Rand.FRandRange(-10.f, 10.f), Rand.FRandRange(0.f, 360.f), Rand.FRandRange(-10.f, 10.f));
+		const float WidthX = Rand.FRandRange(3.f, 6.f);
+		const float WidthY = Rand.FRandRange(3.f, 6.f);
+		if (UStaticMesh* SpireArt = Art(TEXT("SM_Spire")))
+		{
+			// Art is 4.4 m wide and 46 m tall with its pivot at the base.
+			AddMesh(SpireArt, Base - FVector(0.f, 0.f, 400.f), Lean, FVector(WidthX / 4.4f, WidthY / 4.4f, Height / 4600.f), FLinearColor::White, true, false);
+		}
+		else
+		{
+			AddMesh(CubeMesh, Base + FVector(0.f, 0.f, Height * 0.5f - 400.f), Lean, FVector(WidthX, WidthY, Height / 100.f), FLinearColor(0.45f, 0.5f, 0.55f), true);
+		}
 	}
 
 	// A second tide shrine on the island so the player is never stranded by high water.
@@ -705,7 +751,8 @@ void AOverworldBuilder::BuildVolcano(FRandomStream& Rand)
 	}
 
 	// Basalt columns on the flanks.
-	UInstancedStaticMeshComponent* Columns = AddInstancedMesh(CylinderMesh, FLinearColor(0.09f, 0.08f, 0.08f), true);
+	UStaticMesh* ColumnArt = Art(TEXT("SM_BasaltColumn"));
+	UInstancedStaticMeshComponent* Columns = AddInstancedMesh(ColumnArt ? ColumnArt : CylinderMesh.Get(), FLinearColor(0.09f, 0.08f, 0.08f), true, ColumnArt == nullptr);
 	for (int32 i = 0; i < 140; ++i)
 	{
 		const float Angle = Rand.FRandRange(0.f, 2.f * PI);
@@ -727,6 +774,34 @@ void AOverworldBuilder::BuildMangroves(FRandomStream& Rand)
 	const FLinearColor Bark(0.2f, 0.15f, 0.1f);
 
 	UInstancedStaticMeshComponent* Trunks = AddInstancedMesh(CylinderMesh, Bark, true);
+
+	UStaticMesh* TreeArtA = Art(TEXT("SM_Mangrove_A"));
+	UStaticMesh* TreeArtB = Art(TEXT("SM_Mangrove_B"));
+	if (TreeArtA)
+	{
+		// Full tree meshes (no collision of their own); the trunk ISM stays as invisible collision.
+		Trunks->SetVisibility(false);
+		UInstancedStaticMeshComponent* Trees[2] =
+		{
+			AddInstancedMesh(TreeArtA, Bark, false, false),
+			AddInstancedMesh(TreeArtB ? TreeArtB : TreeArtA, Bark, false, false),
+		};
+		for (int32 i = 0; i < 220; ++i)
+		{
+			const float Angle = Rand.FRandRange(0.f, 2.f * PI);
+			const FVector2D P = Center + FVector2D(FMath::Cos(Angle), FMath::Sin(Angle)) * FMath::Sqrt(Rand.FRand()) * Radius * 0.95f;
+			if (DistanceToRoads(P) < 900.f)
+			{
+				continue;
+			}
+			const FVector Base = GroundLocal(P);
+			const float S = Rand.FRandRange(800.f, 1600.f) / 1200.f; // art tree is ~12 m tall
+			Trees[i % 2]->AddInstance(FTransform(FRotator(0.f, Rand.FRandRange(0.f, 360.f), 0.f), Base - FVector(0.f, 0.f, 30.f), FVector(S)));
+			Trunks->AddInstance(FTransform(FRotator::ZeroRotator, Base + FVector(0.f, 0.f, 525.f * S), FVector(0.6f * S, 0.6f * S, 8.f * S)));
+		}
+		return;
+	}
+
 	UInstancedStaticMeshComponent* Roots = AddInstancedMesh(CubeMesh, Bark, false);
 	UInstancedStaticMeshComponent* Canopies = AddInstancedMesh(SphereMesh, FLinearColor(0.11f, 0.24f, 0.15f), false);
 
@@ -761,7 +836,8 @@ void AOverworldBuilder::BuildDunes(FRandomStream& Rand)
 	const FVector2D Center = RegionCenter(Overworld::RDunes);
 	const float Radius = RegionRadius(Overworld::RDunes);
 
-	UInstancedStaticMeshComponent* Shards = AddInstancedMesh(CubeMesh, FLinearColor(0.72f, 0.88f, 0.94f), true);
+	UStaticMesh* ShardArt = Art(TEXT("SM_GlassShard"));
+	UInstancedStaticMeshComponent* Shards = AddInstancedMesh(ShardArt ? ShardArt : CubeMesh.Get(), FLinearColor(0.72f, 0.88f, 0.94f), true, ShardArt == nullptr);
 	for (int32 i = 0; i < 150; ++i)
 	{
 		const float Angle = Rand.FRandRange(0.f, 2.f * PI);
@@ -861,7 +937,31 @@ void AOverworldBuilder::UpdateRegionTitle()
 // Helpers
 // ---------------------------------------------------------------------------------------------
 
-UStaticMeshComponent* AOverworldBuilder::AddMesh(UStaticMesh* Mesh, const FVector& LocalLocation, const FRotator& LocalRotation, const FVector& Scale, const FLinearColor& Color, bool bCollision)
+void AOverworldBuilder::LoadArt()
+{
+	static const TCHAR* Names[] =
+	{
+		TEXT("SM_Boulder_A"), TEXT("SM_Boulder_B"), TEXT("SM_BasaltColumn"), TEXT("SM_GlassShard"), TEXT("SM_Spire"),
+		TEXT("SM_StandingStone"), TEXT("SM_House"), TEXT("SM_LanternTower"), TEXT("SM_Mangrove_A"), TEXT("SM_Mangrove_B"),
+	};
+	ArtMeshes.Reset();
+	int32 Found = 0;
+	for (const TCHAR* Name : Names)
+	{
+		UStaticMesh* Mesh = UEmberveilStatics::LoadArtMesh(Name);
+		ArtMeshes.Add(FName(Name), Mesh);
+		Found += Mesh ? 1 : 0;
+	}
+	UE_LOG(LogEmberveil, Log, TEXT("Overworld art meshes found: %d/%d (missing ones use greybox shapes)"), Found, static_cast<int32>(UE_ARRAY_COUNT(Names)));
+}
+
+UStaticMesh* AOverworldBuilder::Art(const TCHAR* Name) const
+{
+	const TObjectPtr<UStaticMesh>* Found = ArtMeshes.Find(FName(Name));
+	return Found ? Found->Get() : nullptr;
+}
+
+UStaticMeshComponent* AOverworldBuilder::AddMesh(UStaticMesh* Mesh, const FVector& LocalLocation, const FRotator& LocalRotation, const FVector& Scale, const FLinearColor& Color, bool bCollision, bool bTint)
 {
 	UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(this);
 	Component->SetMobility(EComponentMobility::Movable);
@@ -871,11 +971,14 @@ UStaticMeshComponent* AOverworldBuilder::AddMesh(UStaticMesh* Mesh, const FVecto
 	Component->SetCollisionProfileName(bCollision ? UCollisionProfile::BlockAll_ProfileName : UCollisionProfile::NoCollision_ProfileName);
 	Component->RegisterComponent();
 	AddInstanceComponent(Component);
-	UEmberveilStatics::TintMesh(Component, Color);
+	if (bTint)
+	{
+		UEmberveilStatics::TintMesh(Component, Color);
+	}
 	return Component;
 }
 
-UInstancedStaticMeshComponent* AOverworldBuilder::AddInstancedMesh(UStaticMesh* Mesh, const FLinearColor& Color, bool bCollision)
+UInstancedStaticMeshComponent* AOverworldBuilder::AddInstancedMesh(UStaticMesh* Mesh, const FLinearColor& Color, bool bCollision, bool bTint)
 {
 	UInstancedStaticMeshComponent* Component = NewObject<UInstancedStaticMeshComponent>(this);
 	Component->SetMobility(EComponentMobility::Movable);
@@ -884,7 +987,10 @@ UInstancedStaticMeshComponent* AOverworldBuilder::AddInstancedMesh(UStaticMesh* 
 	Component->SetCollisionProfileName(bCollision ? UCollisionProfile::BlockAll_ProfileName : UCollisionProfile::NoCollision_ProfileName);
 	Component->RegisterComponent();
 	AddInstanceComponent(Component);
-	UEmberveilStatics::TintMesh(Component, Color);
+	if (bTint)
+	{
+		UEmberveilStatics::TintMesh(Component, Color);
+	}
 	return Component;
 }
 
