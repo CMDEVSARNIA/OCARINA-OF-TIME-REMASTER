@@ -46,15 +46,20 @@ void UEmberveilStatics::ShowTitle(const UObject* WorldContextObject, const FStri
 	}
 }
 
-UStaticMesh* UEmberveilStatics::LoadArtMesh(const TCHAR* Name)
+UObject* UEmberveilStatics::LoadArtObject(const TCHAR* Folder, const TCHAR* Name, UClass* Class)
 {
-	const FString PackagePath = FString::Printf(TEXT("/Game/Emberveil/Meshes/%s"), Name);
+	const FString PackagePath = FString::Printf(TEXT("/Game/Emberveil/%s/%s"), Folder, Name);
 	if (!FPackageName::DoesPackageExist(PackagePath))
 	{
 		return nullptr;
 	}
 	const FString ObjectPath = FString::Printf(TEXT("%s.%s"), *PackagePath, Name);
-	return Cast<UStaticMesh>(StaticLoadObject(UStaticMesh::StaticClass(), nullptr, *ObjectPath, nullptr, LOAD_NoWarn | LOAD_Quiet));
+	return StaticLoadObject(Class, nullptr, *ObjectPath, nullptr, LOAD_NoWarn | LOAD_Quiet);
+}
+
+UStaticMesh* UEmberveilStatics::LoadArtMesh(const TCHAR* Name)
+{
+	return LoadArt<UStaticMesh>(TEXT("Meshes"), Name);
 }
 
 void UEmberveilStatics::TintMesh(UMeshComponent* Mesh, FLinearColor Color)

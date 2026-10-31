@@ -2,7 +2,10 @@
 
 #include "Emberveil.h"
 #include "EmberveilStatics.h"
+#include "Animation/AnimSequence.h"
 #include "Camera/CameraComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/HealthComponent.h"
 #include "Components/InventoryComponent.h"
@@ -114,11 +117,16 @@ void AEmberveilCharacter::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
+	if (SetupSkeletalArt())
+	{
+		return;
+	}
+
 	if (UStaticMesh* KeeperArt = UEmberveilStatics::LoadArtMesh(TEXT("SM_LanternKeeper")))
 	{
 		// Art pivot is at the feet; the capsule centre is 96 cm above them.
 		BodyMesh->SetStaticMesh(KeeperArt);
-		BodyMesh->SetRelativeTransform(FTransform(FVector(0.f, 0.f, -96.f)));
+		BodyMesh->SetRelativeTransform(FTransform(FRotator(0.f, ArtYawOffset, 0.f), FVector(0.f, 0.f, -96.f)));
 		HeadMesh->SetVisibility(false);
 		Lantern->SetRelativeLocation(FVector(8.f, -36.f, 2.f)); // matches the lantern on the model's left hip
 	}
@@ -138,6 +146,84 @@ void AEmberveilCharacter::OnConstruction(const FTransform& Transform)
 	{
 		UEmberveilStatics::TintMesh(BladeMesh, FLinearColor(0.75f, 0.78f, 0.82f));
 	}
+}
+
+bool AEmberveilCharacter::SetupSkeletalArt()
+{
+	const TCHAR* Folder = TEXT("Characters");
+	USkeletalMesh* Rig = UEmberveilStatics::LoadArt<USkeletalMesh>(Folder, TEXT("SK_LanternKeeper"));
+	AnimIdle = UEmberveilStatics::LoadArt<UAnimSequence>(Folder, TEXT("A_Keeper_Idle"));
+	bUsingSkeletalArt = Rig && AnimIdle;
+	if (!bUsingSkeletalArt)
+	{
+		return false;
+	}
+
+	AnimWalk = UEmberveilStatics::LoadArt<UAnimSequence>(Folder, TEXT("A_Keeper_Walk"));
+	AnimRun = UEmberveilStatics::LoadArt<UAnimSequence>(Folder, TEXT("A_Keeper_Run"));
+	AnimFall = UEmberveilStatics::LoadArt<UAnimSequence>(Folder, TEXT("A_Keeper_Fall"));
+	AnimAttacks.Reset();
+	AnimAttacks.Add(UEmberveilStatics::LoadArt<UAnimSequence>(Folder, TEXT("A_Keeper_Attack1")));
+	AnimAttacks.Add(UEmberveilStatics::LoadArt<UAnimSequence>(Folder, TEXT("A_Keeper_Attack2")));
+	AnimAttacks.Add(UEmberveilStatics::LoadArt<UAnimSequence>(Folder, TEXT("A_Keeper_Attack3")));
+
+	// The rig's root is at the feet; the sword is part of the mesh, so the greybox pieces hide.
+	USkeletalMeshComponent* Skel = GetMesh();
+	Skel->SetSkeletalMeshAsset(Rig);
+	Skel->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -96.f), FRotator(0.f, ArtYawOffset, 0.f));
+	Skel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Skel->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	Skel->SetVisibility(true);
+	BodyMesh->SetVisibility(false);
+	HeadMesh->SetVisibility(false);
+	BladeMesh->SetVisibility(false);
+
+	Lantern->AttachToComponent(Skel, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TEXT("lantern"));
+	CurrentAnim = nullptr;
+	return true;
+}
+
+void AEmberveilCharacter::UpdateAnimation()
+{
+	USkeletalMeshComponent* Skel = GetMesh();
+	UAnimSequence* Desired = AnimIdle;
+	bool bLoop = true;
+	bool bRestart = false;
+	float Rate = 1.f;
+
+	const float Speed = GetVelocity().Size2D();
+	const int32 AttackIndex = Combo->GetComboIndex();
+
+	if (Combo->IsSwinging() && AnimAttacks.IsValidIndex(AttackIndex) && AnimAttacks[AttackIndex])
+	{
+		// Stretch each attack clip to the gameplay swing duration so visuals match the hit timing.
+		Desired = AnimAttacks[AttackIndex];
+		bLoop = false;
+		Rate = Desired->GetPlayLength() / FMath::Max(Combo->SwingDuration, 0.05f);
+		bRestart = !FMath::IsNearlyEqual(Combo->GetSwingStartTime(), CurrentAttackStart);
+		CurrentAttackStart = Combo->GetSwingStartTime();
+	}
+	else if (GetCharacterMovement()->IsFalling() && AnimFall)
+	{
+		Desired = AnimFall;
+	}
+	else if (Speed > (WalkAnimSpeed + RunAnimSpeed) * 0.5f && AnimRun)
+	{
+		Desired = AnimRun;
+		Rate = Speed / RunAnimSpeed;
+	}
+	else if (Speed > 15.f && AnimWalk)
+	{
+		Desired = AnimWalk;
+		Rate = FMath::Max(0.4f, Speed / WalkAnimSpeed);
+	}
+
+	if (Desired && (Desired != CurrentAnim || bRestart))
+	{
+		Skel->PlayAnimation(Desired, bLoop);
+		CurrentAnim = Desired;
+	}
+	Skel->SetPlayRate(Rate);
 }
 
 void AEmberveilCharacter::BeginPlay()
@@ -328,6 +414,13 @@ void AEmberveilCharacter::PlayNote(int32 Note)
 void AEmberveilCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	if (bUsingSkeletalArt)
+	{
+		UpdateAnimation();
+		UpdateWater();
+		return;
+	}
 
 	// Placeholder swing visual: sweep the blade around the body. Third hit is a full spin.
 	float Yaw = 100.f;

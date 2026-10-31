@@ -27,6 +27,15 @@ public:
 	 */
 	static UStaticMesh* LoadArtMesh(const TCHAR* Name);
 
+	/** Loads /Game/Emberveil/<Folder>/<Name> of the given class if it exists; null otherwise. */
+	static UObject* LoadArtObject(const TCHAR* Folder, const TCHAR* Name, UClass* Class);
+
+	template <class T>
+	static T* LoadArt(const TCHAR* Folder, const TCHAR* Name)
+	{
+		return Cast<T>(LoadArtObject(Folder, Name, T::StaticClass()));
+	}
+
 	/** Tints a mesh that uses the engine's BasicShapeMaterial (vector parameter "Color"). */
 	UFUNCTION(BlueprintCallable, Category = "Emberveil")
 	static void TintMesh(UMeshComponent* Mesh, FLinearColor Color);

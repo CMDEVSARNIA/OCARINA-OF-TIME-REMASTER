@@ -16,6 +16,7 @@ class UMeleeComboComponent;
 class UInventoryComponent;
 class UMelodyComponent;
 class AEnvironmentController;
+class UAnimSequence;
 struct FInputActionValue;
 
 /**
@@ -88,6 +89,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Water")
 	float WadeSpeed = 280.f;
 
+	/** Ground speed (cm/s) at which the walk / run animations play at 1x. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	float WalkAnimSpeed = 140.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	float RunAnimSpeed = 360.f;
+
+	/** Rotate imported character art if it faces the wrong way after import. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	float ArtYawOffset = 0.f;
+
 	/** Deeper than this and the current drags you back to the last dry ground. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Water")
 	float MaxWadeDepth = 130.f;
@@ -113,6 +125,18 @@ private:
 
 	void RestartLevel();
 	void UpdateWater();
+	void UpdateAnimation();
+	bool SetupSkeletalArt();
+
+	UPROPERTY(Transient) TObjectPtr<UAnimSequence> AnimIdle;
+	UPROPERTY(Transient) TObjectPtr<UAnimSequence> AnimWalk;
+	UPROPERTY(Transient) TObjectPtr<UAnimSequence> AnimRun;
+	UPROPERTY(Transient) TObjectPtr<UAnimSequence> AnimFall;
+	UPROPERTY(Transient) TArray<TObjectPtr<UAnimSequence>> AnimAttacks;
+	UPROPERTY(Transient) TObjectPtr<UAnimSequence> CurrentAnim;
+
+	bool bUsingSkeletalArt = false;
+	float CurrentAttackStart = -1.f;
 
 	TWeakObjectPtr<AEnvironmentController> Environment;
 	FVector LastSafeLocation = FVector::ZeroVector;

@@ -58,6 +58,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat")
 	int32 GetComboIndex() const { return ComboIndex; }
 
+	/** World time the current (or last) swing started; changes once per swing. */
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	float GetSwingStartTime() const { return SwingStartTime; }
+
 private:
 	void StartSwing(int32 Index);
 	void PerformHit();
