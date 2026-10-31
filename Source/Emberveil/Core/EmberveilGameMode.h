@@ -5,6 +5,7 @@
 #include "EmberveilGameMode.generated.h"
 
 class ATestDungeonBuilder;
+class AOverworldBuilder;
 
 UCLASS()
 class EMBERVEIL_API AEmberveilGameMode : public AGameModeBase
@@ -14,7 +15,11 @@ class EMBERVEIL_API AEmberveilGameMode : public AGameModeBase
 public:
 	AEmberveilGameMode();
 
-	/** Spawn the greybox test dungeon if the level doesn't already contain one. Turn off for real levels. */
+	/** Generate the Emberveil archipelago (includes the Sunken Vault dungeon behind a portal). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emberveil")
+	bool bAutoBuildOverworld = true;
+
+	/** Spawn the greybox test dungeon on its own (used when the overworld is off) if the level doesn't already contain one. Turn off for real levels. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emberveil")
 	bool bAutoBuildTestDungeon = true;
 
@@ -28,4 +33,7 @@ public:
 private:
 	UPROPERTY()
 	TObjectPtr<ATestDungeonBuilder> Dungeon;
+
+	UPROPERTY()
+	TObjectPtr<AOverworldBuilder> Overworld;
 };

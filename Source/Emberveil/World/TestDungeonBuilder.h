@@ -27,6 +27,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon")
 	bool bSpawnLightingIfMissing = true;
 
+	/** Teleport players to the entrance once built (off when the overworld links in via a portal). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon")
+	bool bMovePlayersOnBuild = true;
+
+	/** Close the dungeon with a ceiling so it reads as an interior. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon")
+	bool bAddCeiling = false;
+
+	/** Builds the dungeon (idempotent). Called automatically in BeginPlay. */
+	void Build();
+
 	UFUNCTION(BlueprintPure, Category = "Dungeon")
 	FTransform GetPlayerStartTransform() const;
 
@@ -38,7 +49,6 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	void Build();
 	UStaticMeshComponent* AddBlock(const FVector& LocalCenter, const FVector& Size, const FLinearColor& Color);
 	void AddDividerWall(float X);
 	void AddBrazier(const FVector& LocalLocation);

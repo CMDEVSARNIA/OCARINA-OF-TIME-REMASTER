@@ -4,6 +4,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Player/EmberveilCharacter.h"
+#include "World/OverworldBuilder.h"
 #include "World/TestDungeonBuilder.h"
 
 AEmberveilGameMode::AEmberveilGameMode()
@@ -14,12 +15,21 @@ AEmberveilGameMode::AEmberveilGameMode()
 
 void AEmberveilGameMode::StartPlay()
 {
+	if (TActorIterator<AOverworldBuilder> It(GetWorld()); It)
+	{
+		Overworld = *It;
+	}
+	if (!Overworld && bAutoBuildOverworld)
+	{
+		Overworld = GetWorld()->SpawnActor<AOverworldBuilder>(FVector::ZeroVector, FRotator::ZeroRotator);
+	}
+
 	if (TActorIterator<ATestDungeonBuilder> It(GetWorld()); It)
 	{
 		Dungeon = *It;
 	}
 
-	if (!Dungeon && bAutoBuildTestDungeon)
+	if (!Overworld && !Dungeon && bAutoBuildTestDungeon)
 	{
 		Dungeon = GetWorld()->SpawnActor<ATestDungeonBuilder>(TestDungeonLocation, FRotator::ZeroRotator);
 	}
@@ -32,8 +42,12 @@ void AEmberveilGameMode::HandleStartingNewPlayer_Implementation(APlayerControlle
 {
 	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
 
-	// Players that spawn after the dungeon was built (late join, restart) go to its entrance too.
-	if (Dungeon && Dungeon->HasActorBegunPlay())
+	// Players that spawn after the world was built (late join, restart) go to its start too.
+	if (Overworld && Overworld->IsBuilt())
+	{
+		Overworld->MovePlayersToStart();
+	}
+	else if (!Overworld && Dungeon && Dungeon->HasActorBegunPlay())
 	{
 		Dungeon->MovePlayersToStart();
 	}

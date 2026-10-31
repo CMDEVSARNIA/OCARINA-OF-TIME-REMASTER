@@ -47,7 +47,10 @@ void ATestDungeonBuilder::BeginPlay()
 {
 	Super::BeginPlay();
 	Build();
-	MovePlayersToStart();
+	if (bMovePlayersOnBuild)
+	{
+		MovePlayersToStart();
+	}
 }
 
 FTransform ATestDungeonBuilder::GetPlayerStartTransform() const
@@ -185,6 +188,11 @@ void ATestDungeonBuilder::Build()
 	AddBlock(FVector(CenterX, -Half - WallThickness * 0.5f, WallHeight * 0.5f), FVector(TotalLength + 2.f * WallThickness, WallThickness, WallHeight), WallColor);
 	AddBlock(FVector(-Half - WallThickness * 0.5f, 0.f, WallHeight * 0.5f), FVector(WallThickness, RoomSize, WallHeight), WallColor);
 	AddBlock(FVector(-Half + TotalLength + WallThickness * 0.5f, 0.f, WallHeight * 0.5f), FVector(WallThickness, RoomSize, WallHeight), WallColor);
+
+	if (bAddCeiling)
+	{
+		AddBlock(FVector(CenterX, 0.f, WallHeight + 25.f), FVector(TotalLength + 2.f * WallThickness, RoomSize + 2.f * WallThickness, 50.f), WallColor);
+	}
 
 	// Dividers between rooms, each with a doorway.
 	for (int32 Room = 1; Room < NumRooms; ++Room)

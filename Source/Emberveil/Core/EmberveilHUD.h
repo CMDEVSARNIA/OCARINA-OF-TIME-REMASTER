@@ -14,6 +14,7 @@ class EMBERVEIL_API AEmberveilHUD : public AHUD
 
 public:
 	void ShowMessage(const FString& Message, float Duration);
+	void ShowTitle(const FString& Title, const FString& Subtitle, float Duration);
 
 	virtual void DrawHUD() override;
 
@@ -28,6 +29,12 @@ private:
 	void DrawLockOnReticle(const AEmberveilCharacter* Player);
 	void DrawMessages();
 	void DrawControls();
+	void DrawTitle();
+	void DrawClock();
 
 	TArray<FHudMessage> Messages;
+	FString TitleText;
+	FString SubtitleText;
+	float TitleStartTime = -100.f;
+	float TitleDuration = 0.f;
 };

@@ -26,6 +26,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
+#include "EngineUtils.h"
+#include "GameFramework/DamageType.h"
+#include "World/EnvironmentController.h"
+#include "World/OverworldBuilder.h"
 
 AEmberveilCharacter::AEmberveilCharacter()
 {
@@ -316,6 +320,64 @@ void AEmberveilCharacter::Tick(float DeltaSeconds)
 		}
 	}
 	BladePivot->SetRelativeRotation(FRotator(0.f, Yaw, 0.f));
+
+	UpdateWater();
+}
+
+void AEmberveilCharacter::UpdateWater()
+{
+	if (Health->IsDead())
+	{
+		return;
+	}
+
+	if (!Environment.IsValid())
+	{
+		Environment = AEnvironmentController::Find(this);
+	}
+
+	UCharacterMovementComponent* Move = GetCharacterMovement();
+	float Water = 0.f;
+	if (!Environment.IsValid() || !Environment->GetWaterLevelAt(GetActorLocation(), Water))
+	{
+		Move->MaxWalkSpeed = RunSpeed;
+		return;
+	}
+
+	const float Feet = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	const float Depth = Water - Feet;
+	Move->MaxWalkSpeed = Depth > 30.f ? WadeSpeed : RunSpeed;
+
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (Depth < -20.f && Move->IsMovingOnGround() && Now >= NextSafeSampleTime)
+	{
+		LastSafeLocation = GetActorLocation();
+		bHasSafeLocation = true;
+		NextSafeSampleTime = Now + 0.5f;
+	}
+
+	if (Depth <= MaxWadeDepth)
+	{
+		return;
+	}
+
+	// Swept back. If the remembered spot has flooded too, fall back to the village.
+	FVector Destination = LastSafeLocation;
+	const float SafeFeet = LastSafeLocation.Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	if (!bHasSafeLocation || Water - SafeFeet > MaxWadeDepth * 0.5f)
+	{
+		TActorIterator<AOverworldBuilder> It(GetWorld());
+		if (It)
+		{
+			Destination = It->GetPlayerStartTransform().GetLocation();
+		}
+	}
+
+	Move->StopMovementImmediately();
+	TeleportTo(Destination, GetActorRotation());
+	LockOn->ClearLockOn();
+	UGameplayStatics::ApplyDamage(this, 5.f, nullptr, nullptr, UDamageType::StaticClass());
+	UEmberveilStatics::ShowMessage(this, TEXT("The tide drags you back to shore."), 3.f);
 }
 
 void AEmberveilCharacter::HandleDeath(AActor* Killer)

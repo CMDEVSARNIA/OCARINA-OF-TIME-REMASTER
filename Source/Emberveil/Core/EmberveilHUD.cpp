@@ -10,6 +10,7 @@
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "Player/EmberveilCharacter.h"
+#include "World/EnvironmentController.h"
 
 void AEmberveilHUD::ShowMessage(const FString& Message, float Duration)
 {
@@ -19,6 +20,14 @@ void AEmberveilHUD::ShowMessage(const FString& Message, float Duration)
 	{
 		Messages.RemoveAt(0);
 	}
+}
+
+void AEmberveilHUD::ShowTitle(const FString& Title, const FString& Subtitle, float Duration)
+{
+	TitleText = Title;
+	SubtitleText = Subtitle;
+	TitleDuration = Duration;
+	TitleStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
 }
 
 void AEmberveilHUD::DrawHUD()
@@ -35,8 +44,57 @@ void AEmberveilHUD::DrawHUD()
 		DrawStatus(Player);
 		DrawLockOnReticle(Player);
 	}
+	DrawTitle();
+	DrawClock();
 	DrawMessages();
 	DrawControls();
+}
+
+void AEmberveilHUD::DrawTitle()
+{
+	const float Elapsed = GetWorld()->GetTimeSeconds() - TitleStartTime;
+	if (TitleText.IsEmpty() || Elapsed < 0.f || Elapsed > TitleDuration)
+	{
+		return;
+	}
+
+	// Fade in over 0.5 s, hold, fade out over the last second.
+	const float Alpha = FMath::Min(FMath::Clamp(Elapsed / 0.5f, 0.f, 1.f), FMath::Clamp((TitleDuration - Elapsed) / 1.f, 0.f, 1.f));
+	UFont* TitleFont = GEngine->GetLargeFont();
+	UFont* SubFont = GEngine->GetMediumFont();
+	const float TitleScale = 1.6f;
+
+	float W = 0.f, H = 0.f;
+	GetTextSize(TitleText, W, H, TitleFont, TitleScale);
+	const float Y = Canvas->ClipY * 0.2f;
+	DrawText(TitleText, FLinearColor(1.f, 0.92f, 0.8f, Alpha), (Canvas->ClipX - W) * 0.5f, Y, TitleFont, TitleScale);
+
+	if (!SubtitleText.IsEmpty())
+	{
+		float SW = 0.f, SH = 0.f;
+		GetTextSize(SubtitleText, SW, SH, SubFont);
+		DrawText(SubtitleText, FLinearColor(0.85f, 0.85f, 0.85f, Alpha * 0.9f), (Canvas->ClipX - SW) * 0.5f, Y + H + 6.f, SubFont);
+	}
+}
+
+void AEmberveilHUD::DrawClock()
+{
+	const AEnvironmentController* Environment = AEnvironmentController::Find(this);
+	if (!Environment)
+	{
+		return;
+	}
+
+	UFont* Font = GEngine->GetMediumFont();
+	const FString Lines[] = { Environment->GetClockText(), Environment->GetTideText() };
+	float Y = 40.f;
+	for (const FString& Line : Lines)
+	{
+		float W = 0.f, H = 0.f;
+		GetTextSize(Line, W, H, Font);
+		DrawText(Line, FLinearColor(0.85f, 0.9f, 1.f), Canvas->ClipX - W - 40.f, Y, Font);
+		Y += H + 4.f;
+	}
 }
 
 void AEmberveilHUD::DrawStatus(const AEmberveilCharacter* Player)
@@ -104,7 +162,7 @@ void AEmberveilHUD::DrawMessages()
 	Messages.RemoveAll([Now](const FHudMessage& Message) { return Message.ExpireTime <= Now; });
 
 	UFont* Font = GEngine->GetMediumFont();
-	float Y = 110.f;
+	float Y = Canvas->ClipY * 0.62f;
 	for (const FHudMessage& Message : Messages)
 	{
 		float Width = 0.f;

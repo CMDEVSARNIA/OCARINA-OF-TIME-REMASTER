@@ -16,6 +16,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Emberveil", meta = (WorldContext = "WorldContextObject"))
 	static void ShowMessage(const UObject* WorldContextObject, const FString& Message, float Duration = 3.f);
 
+	/** Shows a large centred title (e.g. a region name) with an optional subtitle. */
+	UFUNCTION(BlueprintCallable, Category = "Emberveil", meta = (WorldContext = "WorldContextObject"))
+	static void ShowTitle(const UObject* WorldContextObject, const FString& Title, const FString& Subtitle, float Duration = 4.f);
+
 	/** Tints a mesh that uses the engine's BasicShapeMaterial (vector parameter "Color"). */
 	UFUNCTION(BlueprintCallable, Category = "Emberveil")
 	static void TintMesh(UMeshComponent* Mesh, FLinearColor Color);

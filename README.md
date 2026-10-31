@@ -4,6 +4,39 @@ An original third-person action-adventure prototype for **Unreal Engine 5.4+ (C+
 You play a lantern-keeper crossing a drowned archipelago, armed with a blade and the
 **Tidehorn**, an instrument whose cadences wake old mechanisms.
 
+## The archipelago
+
+Press Play in an empty level and the game mode generates the island (about 3.2 km across)
+around you:
+
+```
+                 Saltglass Dunes          Drowned Spires
+                  (salt + glass)       (lagoon, low-tide only)
+                         \                 |  <- tidal causeway
+   Lanternhold  ------  The Shallows  ------  Mangrove Lattice
+  (start village,      (hub plain,           (flooded forest)
+   lantern tower)     Waystone Circle)
+                               \
+                            Cinder Rise
+                       (volcano, lava crater)
+```
+
+- **Day/night:** a full day lasts 16 real minutes. The sun and moon move through a physical
+  sky, and after dark sentinels rise on the Shallows, then crumble at dawn.
+- **Tides:** water rises and falls twice a day (high at 00:00/12:00, low at 06:00/18:00). The
+  causeway to the Drowned Spires and the lagoon floor are only walkable at low water. Wade in
+  shallow water (slower); go deeper than chest height and the current drags you back to dry
+  ground.
+- **Tide shrines:** play the **Tidecall** beside one to hold the tide low for 2.5 minutes. One
+  stands where the causeway leaves the Shallows, and one on the Spires island so you're never stranded.
+- **The Sunken Vault:** the arch on the Drowned Spires island is a portal into the dungeon
+  described below. A portal inside the entrance leads back.
+- Region names fade in as you cross borders. The HUD shows the clock and tide.
+
+Generation code: `World/OverworldBuilder` (terrain, regions, roads, landmarks),
+`World/EnvironmentController` (time, sky, tide), `World/NightSpawner`, `World/TideShrine`,
+`World/WarpPortal`.
+
 Everything in this repo is greybox: engine basic shapes, a canvas HUD and input built in
 code. No authored `.uasset` files are needed to play the first test dungeon.
 
@@ -23,7 +56,7 @@ code. No authored `.uasset` files are needed to play the first test dungeon.
 | Test dungeon | `World/TestDungeonBuilder` | 4 rooms built at runtime from basic shapes, with braziers and fallback lighting |
 | HUD | `Core/EmberveilHUD` | Health, keys, notes played, lock-on reticle, messages, controls |
 
-### Test dungeon flow
+### Sunken Vault (dungeon) flow
 
 1. **Start room:** move around and practise jumping on the ledges.
 2. **Sentinel room:** defeat the two sentinels. One drops a **small key**.
@@ -50,10 +83,15 @@ code. No authored `.uasset` files are needed to play the first test dungeon.
    If you use a newer engine, choose it under *Switch Unreal Engine version* first.
 3. Open `Emberveil.sln`, set the configuration to **Development Editor**, and build.
    Or just double-click `Emberveil.uproject` and accept the prompt to compile.
-4. In the editor, choose **File > New Level > Empty Level** (or *Basic*) and press **Play**.
-   The game mode spawns the test dungeon automatically and drops you at its entrance.
+4. In the editor, choose **File > New Level > Empty Level** and press **Play**. The game mode
+   generates the archipelago (expect a few seconds' hitch while terrain collision cooks) and
+   drops you in Lanternhold. Use an *empty* level: the overworld brings its own sun, sky and fog.
 5. Save that level and set it as **Project Settings > Maps & Modes > Editor/Game Default Map**.
 
+> If the ground is invisible from above but you can stand on it, the triangle winding is
+> backwards for your engine version: tick **bFlipTerrainWinding** on the overworld builder
+> (or flip its default in `OverworldBuilder.h`).
+>
 > This code was written without access to an Unreal toolchain, so it hasn't been compiled yet.
 > If the first build reports errors, they should be small API mismatches. Paste the build log
 > into an issue or chat and fix them before adding features.
@@ -64,7 +102,9 @@ code. No authored `.uasset` files are needed to play the first test dungeon.
   Animation Blueprint, then drive swings from `UMeleeComboComponent::OnSwingStarted` with anim notifies.
 - **Input:** input is built in `BuildInputMappings()` so it works without assets. Moving it to
   `IA_*` / `IMC_*` assets lets players rebind keys.
-- **Levels:** set `bAutoBuildTestDungeon = false` on the game mode (or a Blueprint subclass)
+- **Terrain:** the procedural island is a starting point. Once the layout feels right, recreate
+  it as a Landscape with real materials, foliage and water (Water plugin) for production quality.
+- **Levels:** set `bAutoBuildOverworld` / `bAutoBuildTestDungeon = false` on the game mode (or a Blueprint subclass)
   and build real levels by hand. Doors, gates, keys, sentinels and pedestals are all placeable actors.
 - **Cadences:** add entries to `UMelodyComponent::KnownCadences`. Any actor that implements
   `IMelodyReceiver` can react to them.

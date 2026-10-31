@@ -15,6 +15,7 @@ class ULockOnComponent;
 class UMeleeComboComponent;
 class UInventoryComponent;
 class UMelodyComponent;
+class AEnvironmentController;
 struct FInputActionValue;
 
 /**
@@ -81,6 +82,16 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gameplay")
 	TObjectPtr<UMelodyComponent> Melody;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Water")
+	float RunSpeed = 520.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Water")
+	float WadeSpeed = 280.f;
+
+	/** Deeper than this and the current drags you back to the last dry ground. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Water")
+	float MaxWadeDepth = 130.f;
+
 private:
 	void BuildInputMappings();
 
@@ -101,6 +112,12 @@ private:
 	void HandleDeath(AActor* Killer);
 
 	void RestartLevel();
+	void UpdateWater();
+
+	TWeakObjectPtr<AEnvironmentController> Environment;
+	FVector LastSafeLocation = FVector::ZeroVector;
+	bool bHasSafeLocation = false;
+	float NextSafeSampleTime = 0.f;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputMappingContext> DefaultContext;

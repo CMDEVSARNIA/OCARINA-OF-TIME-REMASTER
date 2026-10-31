@@ -27,6 +27,23 @@ void UEmberveilStatics::ShowMessage(const UObject* WorldContextObject, const FSt
 	}
 }
 
+void UEmberveilStatics::ShowTitle(const UObject* WorldContextObject, const FString& Title, const FString& Subtitle, float Duration)
+{
+	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull) : nullptr;
+	if (!World)
+	{
+		return;
+	}
+
+	if (APlayerController* PC = World->GetFirstPlayerController())
+	{
+		if (AEmberveilHUD* HUD = Cast<AEmberveilHUD>(PC->GetHUD()))
+		{
+			HUD->ShowTitle(Title, Subtitle, Duration);
+		}
+	}
+}
+
 void UEmberveilStatics::TintMesh(UMeshComponent* Mesh, FLinearColor Color)
 {
 	if (!Mesh || Mesh->GetNumMaterials() == 0)
